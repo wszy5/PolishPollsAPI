@@ -36,4 +36,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run application
       run: |
-        uvicorn main:app --limit-max-requests 0
+        uvicorn --limit-max-requests 0 main:app
