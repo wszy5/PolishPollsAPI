@@ -1,46 +1,20 @@
-import requests
-from bs4 import BeautifulSoup as soup
+from polls import fetch_polls
+from fastapi import FastAPI, Query
 
-URL = "https://ewybory.eu/sondaze/polska/"
+polls = fetch_polls()
 
-website = requests.get(URL)
+app = FastAPI(
+    title="Polish Polls API"
+)
 
-if website.status_code != 200:
-    print(f"Błąd strony źródłowej! Serwer zwrócił błąd {website.status_code}")
+@app.get("/")
+def get_all():
+    return polls
 
-content = soup(website.content,'html.parser')
-
-polls = content.find_all("div",{"class":"section_polls_row"})[1:]
-
-responses = []
-
-for poll in polls:
-    result = {}
-    try:
-        date = poll.find("div",{"class":"section_polls_term"}).text
-        result['date'] = date
-
-        company = poll.find("a").text
-        result['company'] = company
-
-        sample = poll.find("div",{"class":"section_polls_sample desktop"}).text
-        result['sample'] = sample
-
-        details = {}
-
-        parties = poll.find_all("div",{"class":"section_polls_data"})
-        details['lewica'] = parties[0].text
-        details['ko'] = parties[1].text
-        details['p2050'] = parties[2].text
-        details['psl'] = parties[3].text
-        details['ap'] = parties[4].text
-        details['w'] = parties[5].text
-        details['pis'] = parties[6].text
-        details['konfa'] = parties[7].text
-        
-        result['details'] = details
-        
-        responses.append(result)
-    except:
-        continue
-print(responses)
+@app.get("/parties/{party_name}")
+async def party(party_name: str, amount: int = Query(5, title="amount", description="Amount of latest polls")):
+    output = {}
+    results = polls.head(amount).loc[:, party_name]
+    output['results'] = results
+    output['mean'] = round(results.mean(),2)
+    return(output)
